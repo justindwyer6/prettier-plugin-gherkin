@@ -1,5 +1,60 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`parseGherkin file parse basic feature file into an AST 1`] = `
+Array [
+  Object {
+    "description": null,
+    "keyword": "Feature",
+    "language": "en",
+    "location": Object {
+      "column": 1,
+      "line": 1,
+    },
+    "name": "Minimal",
+    "tags": Array [],
+    "type": "feature",
+  },
+  Object {
+    "description": null,
+    "keyword": "Scenario",
+    "location": Object {
+      "column": 5,
+      "line": 2,
+    },
+    "name": "minimalistic",
+    "tags": Array [],
+    "type": "scenario",
+  },
+  Object {
+    "keyword": "Given ",
+    "location": Object {
+      "column": 9,
+      "line": 3,
+    },
+    "text": "the minimalism",
+    "type": "step",
+  },
+  Object {
+    "keyword": "When ",
+    "location": Object {
+      "column": 9,
+      "line": 4,
+    },
+    "text": "you change nothing",
+    "type": "step",
+  },
+  Object {
+    "keyword": "Then ",
+    "location": Object {
+      "column": 9,
+      "line": 5,
+    },
+    "text": "it's still small",
+    "type": "step",
+  },
+]
+`;
+
 exports[`parseGherkin parse basic feature file into an AST 1`] = `
 Array [
   Object {

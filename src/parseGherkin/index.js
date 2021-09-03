@@ -6,17 +6,18 @@ const readJsonLinesSync = require("read-json-lines-sync").default;
 const npmRunPath = require("npm-run-path");
 const GherkinSyntaxError = require("./GherkinSyntaxError");
 
-const parseGherkinDocument = (text) => {
+const parseGherkinDocument = (rawFeatureFile) => {
+  // Create a temporary file to write the AST to
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "gherkin-parser"));
   const tmpFilePath = path.join(tmpDir, "tmp.feature");
 
-  fs.writeFileSync(tmpFilePath, text, {
-    encoding: "utf-8",
-  });
+  fs.writeFileSync(tmpFilePath, rawFeatureFile);
 
+  // I have no idea where/how `gherkin-javascript` is being referenced.
+  // I assume this is what the command runs: https://github.com/cucumber/gherkin-javascript
   const { status, output, error } = spawnSync(
     `gherkin-javascript`,
-    [/*"--no-source" , "--no-pickles", */ tmpFilePath],
+    [tmpFilePath],
     {
       encoding: "utf-8",
       env: npmRunPath.env(),
@@ -38,21 +39,26 @@ const parseGherkinDocument = (text) => {
   return output;
 };
 
-const buildGherkinDocument = (text) => {
-  const output = parseGherkinDocument(text);
-  const cleanedOutput = output.filter((oneLine) => !!oneLine).toString();
-  const resultDocuments = readJsonLinesSync(cleanedOutput);
+const buildGherkinDocument = (rawFeatureFile) => {
+  const rawParsedGherkinJson = parseGherkinDocument(rawFeatureFile);
+  const parsedGherkinJsonString = rawParsedGherkinJson
+    .filter((item) => !!item)
+    .toString();
+  const formattedGherkinJson = readJsonLinesSync(parsedGherkinJsonString);
 
-  const attachementDocument = resultDocuments.find(
-    (oneDocument) => !!oneDocument.attachment,
+  const errorAttachmentDocument = formattedGherkinJson.find(
+    (document) => !!document.attachment,
   );
 
-  const gherkinDocument = resultDocuments.find(
-    (oneDocument) => !!oneDocument.gherkinDocument,
+  const gherkinDocument = formattedGherkinJson.find(
+    (document) => !!document.gherkinDocument,
   );
 
-  if (!gherkinDocument && attachementDocument) {
-    throw new GherkinSyntaxError(attachementDocument.attachment.data, text);
+  if (!gherkinDocument && errorAttachmentDocument) {
+    throw new GherkinSyntaxError(
+      errorAttachmentDocument.attachment.data,
+      rawFeatureFile,
+    );
   }
 
   return gherkinDocument.gherkinDocument;
@@ -60,7 +66,20 @@ const buildGherkinDocument = (text) => {
 
 const buildAstTree = (gherkinDocument) => {
   const simplifiedAst = { ...gherkinDocument };
+  console.log(
+    "🚀 ~ file: index.js ~ line 69 ~ buildAstTree ~ simplifiedAst",
+    simplifiedAst,
+  );
+  console.log(
+    "🚀 ~ file: index.js ~ line 70 ~ buildAstTree ~ gherkinDocument",
+    gherkinDocument,
+  );
   delete simplifiedAst.uri;
+
+  console.log(
+    "🚀 ~ file: index.js ~ line 69 ~ buildAstTree ~ simplifiedAst",
+    simplifiedAst,
+  );
 
   return simplifiedAst;
 };
@@ -160,8 +179,8 @@ const sortFlatAstByLocation = (nodeA, nodeB) => {
   return 0;
 };
 
-const parseGherkin = (text /*, parsers, options*/) => {
-  const gherkinDocument = buildGherkinDocument(text);
+const parseGherkin = (rawFeatureFile /*, parsers, options*/) => {
+  const gherkinDocument = buildGherkinDocument(rawFeatureFile);
   const astTree = buildAstTree(gherkinDocument);
   const flatAst = [astTree].reduce(flattenAst, []).sort(sortFlatAstByLocation);
 
